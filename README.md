@@ -42,4 +42,7 @@ v1.0.0
 
 ### Buy me a coffee ☕
 
-![1732454807492](image/README/1732454807492.png)
+<img src="./image/README/1732454807492.png" style="width:300px;height:350px;"></img>
+
+
+
