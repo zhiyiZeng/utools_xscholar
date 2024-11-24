@@ -1,6 +1,6 @@
 # XScholar
 
-XScholar 是一个 uTools 插件，用于快速查询学术期刊的等级分类信息。
+* [ ] 
 
 ![1732453964389](image/README/1732453964389.png)
 
@@ -13,9 +13,8 @@ XScholar 是一个 uTools 插件，用于快速查询学术期刊的等级分类
 
 ## 安装
 
-1. 项目文件夹`XScholar.ups`直接拖拽到utools。
-2. utools插件市场搜索`XScholar`。
-
+1. 项目文件夹 `XScholar.ups`直接拖拽到utools。
+2. utools插件市场搜索 `XScholar`。
 
 ## 使用方法
 
@@ -40,3 +39,7 @@ Zhiyi Zeng, 西安交通大学。
 ## 版本
 
 v1.0.0
+
+### Buy me a coffee ☕
+
+![1732454807492](image/README/1732454807492.png)
