@@ -11,6 +11,12 @@ XScholar 是一个 uTools 插件，用于快速查询学术期刊的等级分类
   - JCR 分区
   - 中国各大高校认定的期刊分类
 
+## 安装
+
+1. 项目文件夹`XScholar.ups`直接拖拽到utools。
+2. utools插件市场搜索`XScholar`。
+
+
 ## 使用方法
 
 1. 在 uTools 中输入以下任意关键词唤起插件：
