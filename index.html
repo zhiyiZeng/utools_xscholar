@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      margin: 0;
+    }
+
+    div {
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      justify-content: center;
+      width: 100%;
+      gap: 10px;
+    }
+
+    span {
+      font-size: large;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <div id="tags-container"></div>
+  </div>
+
+  <script>
+    function loadRankCnName() {
+      fetch('./rank_cn_name.json')
+          .then(response => {
+              if (!response.ok) throw new Error('无法加载 rank_cn_name.json');
+              return response.json();
+          })
+          .then(data => {
+              rankCnName = data;
+              console.log("rankCnName 加载成功:", rankCnName);
+          })
+          .catch(error => {
+              console.error('加载 rank_cn_name.json 出错:', error);
+          });
+    }
+    
+    // uTools API onPluginEnter(callback)
+    // type 为 "text"、"regex"、 "over" 时， payload 值为进入插件应用时的主输入框文本
+    utools.onPluginEnter(({ code, type, payload, option }) => {
+      console.log('用户进入插件应用', code, type, payload)
+      
+      loadRankCnName();
+      
+      let previousJournalName = "";
+      let journalName = "";
+
+      utools.setSubInput((onChange, placeholder, isFocus) => {
+          journalName = onChange.text.trim();
+      }, '输入期刊名称')
+
+      // 监听器用户是否输入enter
+      const keydownHandler = (event) => {
+
+        if (journalName != previousJournalName && journalName != "" && journalName != "journalName") {
+            console.log("enter", journalName, previousJournalName);
+            previousJournalName = journalName;
+
+            const container = document.getElementById('tags-container');
+            container.innerHTML = "";
+
+            const result = fetchJournalRank(journalName);
+            console.log("output", result);
+        }
+      };
+
+      document.addEventListener('keydown', keydownHandler);
+
+    });
+
+    function insertTags(tags) {
+        const container = document.getElementById('tags-container');
+        container.innerHTML = "";
+
+        if(!tags) {
+          console.warn("tags 为空，返回空结果");
+
+          const tag = document.createElement('span');
+          tag.className = "notfound";
+          tag.textContent = "未找到该期刊，请检查期刊名称是否正确！";
+          container.appendChild(tag);
+          return;
+        }
+
+        // Colors for tags
+        const colors = ['color-1', 'color-2', 'color-3', 'color-4',];
+        
+        // Function to pick a random color
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Create and append tags
+        Object.entries(tags).forEach(([key, value]) => {
+            const tag = document.createElement('span');
+            tag.className = `tag ${getRandomColor()}`; // Assign a random color
+            tag.textContent = `${key}: ${value}`;
+            container.appendChild(tag);
+        });
+
+    }
+
+      /**
+      * 查询期刊排名
+      * @param {string} journalName - 期刊名称
+      * @returns {Object} - 包含期刊官方和自定义排名的对象
+      */
+      function fetchJournalRank(journalName) {
+        if(!journalName) {
+          console.warn("journalName 为空，返回空结果");
+          return null;
+        }
+
+        const baseUrl = "https://www.easyscholar.cc/open/getPublicationRank?secretKey=654a9b886b034cdcbe6373ec06ca2d86&publicationName=";
+        const url = baseUrl + encodeURIComponent(journalName);
+        console.log("url", url);
+
+        // 定义结果存储对象
+        let filterRanks = {};
+
+        // 模拟同步 fetch 请求
+        let responseText = null;
+
+        try {
+            const request = fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP 请求失败，状态码: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    responseText = text;
+                    const filter_ranks = parseResponseText(responseText);
+                    console.log("filter_ranks", filter_ranks);
+                    insertTags(filter_ranks)
+                    return filter_ranks;
+                })
+                .catch(error => {
+                    console.error("请求失败:", error);
+                    return null;
+                });
+
+        } catch (error) {
+            console.error("请求出错:", error);
+            return null;
+        }
+        
+      }
+
+      function parseResponseText(responseText) {
+        const data = JSON.parse(responseText);
+
+        if (data.code === 200) {
+            // 翻译 officialRank
+            const officialRanks = data.data.officialRank.all;
+            if(!officialRanks) {
+              console.warn("officialRanks 是 null，返回空结果");
+              return null; // 如果 officialRanks 是 null，则返回 null
+            };
+
+            const translatedOfficialRanks = {};
+            for (const [key, value] of Object.entries(officialRanks)) {
+                if(!rankCnName[key]) {
+                  console.warn("rankCnName 中没有该 key", key);
+                  continue;
+                }
+                
+                translatedOfficialRanks[rankCnName[key]] = value;
+            }
+
+            // 处理 customRank
+            const customRankInfo = data.data.customRank.rankInfo;
+            const customRanks = {};
+            if(customRankInfo) {
+                for (const rank of data.data.customRank.rank) {
+                    const [uuid, rankNumber] = rank.split("&&&");
+                    if (uuid !== "1704494890525270016") continue;
+
+                    const rankNum = parseInt(rankNumber, 10);
+                    const rankInfo = customRankInfo.find(item => item.uuid === uuid);
+                    const rankTextKey = ["oneRankText", "twoRankText", "threeRankText", "fourRankText"][rankNum - 1];
+
+                    if (rankInfo.abbName === "XJTH管理") {
+                        rankInfo.abbName = "西安交通大学管理";
+                    }
+                    customRanks[rankInfo.abbName] = rankInfo[rankTextKey];
+                }
+            }
+
+            // 合并结果
+            filterRanks = { ...customRanks, ...translatedOfficialRanks };
+            // 返回结果
+            return filterRanks;
+        } else {
+            console.error("请求失败:", data.message);
+            return null;
+        }
+
+    }
+    
+
+  </script>
+</body>
+
+<style>
+
+#tags-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+    text-align: left;
+}
+
+.tag {
+  display: inline-block;     /* 自动根据内容调整宽度 */
+  padding: 5px 10px;         /* 上下左右的内边距 */
+  border-radius: 15px;       /* 圆角效果 */
+  font-size: 14px;           /* 字体大小 */
+  color: white;              /* 字体颜色 */
+  font-weight: bold;         /* 字体加粗 */
+  white-space: nowrap;       /* 防止文字换行 */
+  max-width: 200px;          /* 设置最大宽度 */
+  text-overflow: ellipsis;   /* 超出部分显示省略号 */
+  overflow: hidden;          /* 超出隐藏 */
+}
+
+/* 替换为 Element UI 的颜色 */
+.color-1 { background-color: rgba(64, 158, 255, 0.9); } /* 主色 */
+.color-2 { background-color: rgba(103, 194, 58, 0.9); } /* 成功色 */
+.color-3 { background-color: rgba(230, 162, 60, 0.9); } /* 警告色 */
+.color-4 { background-color: rgba(245, 108, 108, 0.9); } /* 危险色 */
+/* Add more colors as needed */
+
+.notfound {
+  color: rgba(245, 108, 108, 0.9);
+}
+
+</style>
+
+</html>

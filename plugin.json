@@ -1,0 +1,23 @@
+{
+	"name": "XScholar",
+	"version": "1.0.0",
+	"pluginName": "XScholar",
+	"description": "输入期刊名称，按回车后访问 API 并展示排名信息",
+	"main": "index.html",
+	"logo": "logo.png",
+	"preload": "preload.js",
+	"author": "ZZY",
+	"features": [
+		{
+			"code": "xscholar",
+			"explain": "查找期刊等级",
+			"cmds": [
+				"xs",
+				"xscholar",
+				"scholar",
+				"journal",
+				"paper"
+			]
+		}
+	]
+}
